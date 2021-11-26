@@ -7,7 +7,6 @@ namespace Domain.Validators
     {
         public TodoItemValidator()
         {
-            RuleFor(item => item.TodoId).GreaterThanOrEqualTo(1);
             RuleFor(item => item.Text).MinimumLength(3).MaximumLength(50);
             RuleFor(item => item.ListId).MustBeAGuid();
         }

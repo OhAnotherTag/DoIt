@@ -43,12 +43,6 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task AddAsync(TodoList item, CancellationToken token)
         {
-            var list = await _context.Lists.FirstAsync(l => l.Title == item.Title, token);
-            if (list is null)
-            {
-                throw new ArgumentException("Title of a given list must be unique");
-            }
-
             _context.Lists.Add(item);
             
             await _context.SaveChangesAsync(token);

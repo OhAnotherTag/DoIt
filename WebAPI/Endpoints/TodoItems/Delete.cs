@@ -18,19 +18,25 @@ namespace WebAPI.Endpoints.TodoItems
             _commandDispatcher = commandDispatcher;
         }
 
-        [HttpDelete("{listId}/todos/{todoId}")]
+        [HttpDelete("{listId}/todos/{todoId:int}")]
         [SwaggerOperation(
             Summary = "Delete a existing Todo",
             OperationId = "DeleteTodo",
             Tags = new[] {"Todos"}
         )]
         public async Task<ActionResult<BaseResponse>> HandleAsync(
-            DeleteTodoCommand command,
-            string todoId,
+            int todoId,
+            string listId,
             CancellationToken token)
         {
+            DeleteTodoCommand command = new() {TodoId = todoId, ListId = listId};
+            
             await _commandDispatcher.DispatchAsync(command, token);
-            return Ok(new BaseResponse{Message = $"Todo with TodoId {command.TodoId} was deleted successfully"});
+            var value = new BaseResponse
+            {
+                Message = $"Todo with TodoId {command.TodoId} was deleted successfully"
+            };
+            return Ok(value);
         }
     }
 }

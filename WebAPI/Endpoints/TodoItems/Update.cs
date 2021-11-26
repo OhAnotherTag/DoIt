@@ -28,11 +28,17 @@ namespace WebAPI.Endpoints.TodoItems
         public async Task<ActionResult<BaseResponse>> HandleAsync(
             UpdateTodoCommand command,
             int todoId,
+            string listId,
             CancellationToken token)
         {
             command.TodoId = todoId;
+            command.ListId = listId;
             await _commandDispatcher.DispatchAsync(command, token);
-            return Ok(new BaseResponse{Message = $"Todo with TodoId {command.TodoId} was updated successfully"});
+            var value = new BaseResponse
+            {
+                Message = $"Todo with TodoId {command.TodoId} was updated successfully"
+            };
+            return Ok(value);
         }
     }
 }

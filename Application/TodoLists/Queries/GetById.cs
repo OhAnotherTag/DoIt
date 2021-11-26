@@ -27,6 +27,7 @@ namespace Application.TodoLists.Queries
                 throw new ArgumentException("param ListId must be a valid Guid");
             }
             var todos = await _todoListRepository.GetByIdAsync(guid.ToString(), token);
+
             return new TodoListDto
             {
                 ListId = todos.ListId,

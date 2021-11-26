@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.TodoLists.Commands;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Command.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
@@ -16,7 +18,7 @@ namespace WebAPI.Endpoints.TodoLists
         {
             _commandDispatcher = commandDispatcher;
         }
-        
+
         [HttpPost]
         [SwaggerOperation(
             Summary = "Create a new List",
@@ -27,12 +29,18 @@ namespace WebAPI.Endpoints.TodoLists
             CreateTodoListCommand request,
             CancellationToken token = default)
         {
-            var cmd = new CreateTodoListCommand
+            try
             {
-                Title = request.Title
-            };
-
-            await _commandDispatcher.DispatchAsync(cmd, token);
+                await _commandDispatcher.DispatchAsync(request, token);
+            }
+            catch (Exception ex)
+            {
+                switch (ex)
+                {
+                    case ValidationException:
+                        return BadRequest(new BaseResponse {Message = ex.Message});
+                }
+            }
 
             var baseResponse = new BaseResponse {Message = $"List was created successfully"};
             return Ok(baseResponse);

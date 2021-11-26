@@ -1,10 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.TodoItems.Commands;
-using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Command.Interfaces;
-using SharedKernel.Query.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
@@ -33,7 +31,11 @@ namespace WebAPI.Endpoints.TodoItems
         {
             command.ListId = listId;
             await _commandDispatcher.DispatchAsync(command, token);
-            return Ok(new BaseResponse{Message = $"Todo with ListId {command.ListId} was created successfully"});
+            var value = new BaseResponse
+            {
+                Message = $"Todo with ListId {command.ListId} was created successfully"
+            };
+            return Ok(value);
         }
     }
 }

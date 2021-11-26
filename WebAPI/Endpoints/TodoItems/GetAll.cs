@@ -38,7 +38,11 @@ namespace WebAPI.Endpoints.TodoItems
             
             var todos = await _queryDispatcher.QueryAsync(query, token);
 
-            return Ok(new BaseResponse<List<TodoDto>>{Data = todos});
+            var value = new BaseResponse<List<TodoDto>>
+            {
+                Data = todos
+            };
+            return Ok(value);
         }
     }
 }
