@@ -1,51 +1,38 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.TodoItems.Commands;
 using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Command.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
 namespace WebAPI.Endpoints.TodoItems
 {
-    public class UpdateTodoRequest
+    public class Update : BaseEndpoint
     {
-        [FromRoute] public string ListId { get; set; }
-        [FromRoute] public int TodoId { get; set; }
-        [FromBody] public string Text { get; set; }
-    }
-    
-    public class UpdateTodoResponse
-    {
-        public string Message { get; set; }
-    }
-    
-    public class Update : BaseAsyncEndpoint<UpdateTodoRequest,UpdateTodoResponse>
-    {
-        private readonly ITodoItemRepository _todoItemRepository;
+        private readonly ICommandDispatcher _commandDispatcher;
 
-        public Update(ITodoItemRepository todoItemRepository)
+        public Update(ICommandDispatcher commandDispatcher)
         {
-            _todoItemRepository = todoItemRepository;
+            _commandDispatcher = commandDispatcher;
         }
 
-        [HttpPut("{listId}/todos/{TodoId}")]
+        [HttpPut("{listId}/todos/{todoId:int}")]
         [SwaggerOperation(
             Summary = "Update a existing Todo",
             OperationId = "UpdateTodo",
             Tags = new[] {"Todos"}
         )]
-        public override async Task<ActionResult<UpdateTodoResponse>> HandleAsync([FromRoute] UpdateTodoRequest request, CancellationToken token)
+        public async Task<ActionResult<BaseResponse>> HandleAsync(
+            UpdateTodoCommand command,
+            int todoId,
+            CancellationToken token)
         {
-            var entity = new TodoItem
-            {
-                TodoId = request.TodoId,
-                Text = request.Text
-            };
-            
-            await _todoItemRepository.UpdateAsync(entity, token);
-            
-            return Ok(new UpdateTodoResponse{Message = $"Todo with TodoId {request.TodoId} was updated successfully"});
+            command.TodoId = todoId;
+            await _commandDispatcher.DispatchAsync(command, token);
+            return Ok(new BaseResponse{Message = $"Todo with TodoId {command.TodoId} was updated successfully"});
         }
     }
 }

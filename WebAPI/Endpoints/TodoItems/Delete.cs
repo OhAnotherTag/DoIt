@@ -1,49 +1,36 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.TodoItems.Commands;
 using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Command.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
 namespace WebAPI.Endpoints.TodoItems
 {
-    public class DeleteTodoRequest
+    public class Delete : BaseEndpoint
     {
-        [FromRoute] public string ListId { get; set; }
-        [FromRoute] public int TodoId { get; set; }
-    }
-    
-    public class DeleteTodoResponse
-    {
-        public string Message { get; set; }
-    }
-    
-    public class Delete : BaseAsyncEndpoint<DeleteTodoRequest, DeleteTodoResponse>
-    {
-        private readonly ITodoItemRepository _todoItemRepository;
+        private readonly ICommandDispatcher _commandDispatcher;
 
-        public Delete(ITodoItemRepository todoItemRepository)
+        public Delete(ICommandDispatcher commandDispatcher)
         {
-            _todoItemRepository = todoItemRepository;
+            _commandDispatcher = commandDispatcher;
         }
 
-        [HttpDelete("{listId}/todos/{TodoId}")]
+        [HttpDelete("{listId}/todos/{todoId}")]
         [SwaggerOperation(
             Summary = "Delete a existing Todo",
             OperationId = "DeleteTodo",
             Tags = new[] {"Todos"}
         )]
-        public override async Task<ActionResult<DeleteTodoResponse>> HandleAsync([FromRoute] DeleteTodoRequest request, CancellationToken token)
+        public async Task<ActionResult<BaseResponse>> HandleAsync(
+            DeleteTodoCommand command,
+            string todoId,
+            CancellationToken token)
         {
-            var entity = new TodoItem
-            {
-                TodoId = request.TodoId
-            };
-            
-            await _todoItemRepository.DeleteAsync(entity, token);
-            
-            return Ok(new DeleteTodoResponse{Message = $"Todo with TodoId {request.TodoId} was deleted successfully"});
+            await _commandDispatcher.DispatchAsync(command, token);
+            return Ok(new BaseResponse{Message = $"Todo with TodoId {command.TodoId} was deleted successfully"});
         }
     }
 }

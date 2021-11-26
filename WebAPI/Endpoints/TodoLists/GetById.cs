@@ -1,7 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.TodoLists.Queries;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Query.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
@@ -18,13 +19,13 @@ namespace WebAPI.Endpoints.TodoLists
         
     }
     
-    public class GetById : BaseAsyncEndpoint<GetByIdListRequest, GetByIdListResponse>
+    public class GetById : BaseEndpoint
     {
-        private readonly ITodoListRepository _todoListRepository;
+        private readonly IQueryDispatcher _queryDispatcher;
 
-        public GetById(ITodoListRepository todoListRepository)
+        public GetById(IQueryDispatcher queryDispatcher)
         {
-            _todoListRepository = todoListRepository;
+            _queryDispatcher = queryDispatcher;
         }
 
         [HttpGet("{listId}")]
@@ -33,19 +34,17 @@ namespace WebAPI.Endpoints.TodoLists
             OperationId = "GetByIdList",
             Tags = new[] {"Lists"}
         )]
-        public override async Task<ActionResult<GetByIdListResponse>> HandleAsync([FromRoute] GetByIdListRequest request, CancellationToken token)
-        {   
-            var todos = await _todoListRepository.GetByIdAsync(request.ListId, token);
+        public async Task<ActionResult<BaseResponse<TodoListDto>>> HandleAsync(
+            GetByIdTodoListQuery query,
+            string listId,
+            CancellationToken token)
+        {
+            query.ListId = listId;
+
+            var todos = await _queryDispatcher.QueryAsync(query, token);
+            var baseResponse = new BaseResponse<TodoListDto> {Data = todos};
             
-            return Ok(new GetByIdListResponse
-            {
-                Data = new TodoListDto
-                {
-                    ListId = todos.ListId,
-                    Title = todos.Title,
-                    Items = todos.Items
-                }
-            });
+            return Ok(baseResponse);
         }   
     }
 }

@@ -9,8 +9,8 @@ namespace Domain.Validators
         public TodoListValidator()
         {
             RuleFor(list => list.ListId).MustBeAGuid();
-            RuleFor(list => list.Title).NotNull();
-            RuleFor(list => list.Items).NotNull();
+            RuleFor(list => list.Title).MinimumLength(3).MaximumLength(50);
+            // RuleFor(list => list.Items).NotNull();
         }
     }
 }

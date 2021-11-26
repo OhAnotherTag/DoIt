@@ -1,33 +1,20 @@
-using System;
-using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
-using Domain.Entities;
+using Application.TodoLists.Commands;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Command.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
 namespace WebAPI.Endpoints.TodoLists
 {
-    public class CreateListRequest
+    public class Create : BaseEndpoint
     {
-        [StringLength(50, MinimumLength = 3)]
-        [FromBody] public string Title { get; set; }
-    }
+        private readonly ICommandDispatcher _commandDispatcher;
 
-    public class CreateListResponse
-    {
-        public string Message { get; set; }
-    }
-    
-    public class Create : BaseAsyncEndpoint<CreateListRequest, CreateListResponse>
-    {
-        private readonly ITodoListRepository _todoListRepository;
-
-        public Create(ITodoListRepository todoListRepository)
+        public Create(ICommandDispatcher commandDispatcher)
         {
-            _todoListRepository = todoListRepository;
+            _commandDispatcher = commandDispatcher;
         }
         
         [HttpPost]
@@ -36,14 +23,19 @@ namespace WebAPI.Endpoints.TodoLists
             OperationId = "CreateList",
             Tags = new[] {"Lists"}
         )]
-        public override async Task<ActionResult<CreateListResponse>> HandleAsync([FromRoute] CreateListRequest request, CancellationToken token)
+        public async Task<ActionResult<BaseResponse>> HandleAsync(
+            CreateTodoListCommand request,
+            CancellationToken token = default)
         {
-            var id = Guid.NewGuid().ToString();
-            var entity = new TodoList(id, request.Title);
+            var cmd = new CreateTodoListCommand
+            {
+                Title = request.Title
+            };
 
-            await _todoListRepository.AddAsync(entity, token);
-            
-            return Ok(new CreateListResponse{Message = $"List with {id} was created successfully"});
+            await _commandDispatcher.DispatchAsync(cmd, token);
+
+            var baseResponse = new BaseResponse {Message = $"List was created successfully"};
+            return Ok(baseResponse);
         }
     }
 }

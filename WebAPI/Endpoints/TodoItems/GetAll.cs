@@ -2,30 +2,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.TodoItems.Queries;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Command.Interfaces;
+using SharedKernel.Query.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
 namespace WebAPI.Endpoints.TodoItems
 {
-    public class GetAllTodoRequest
-    {
-        [FromRoute] public string ListId { get; set; }
-    }
-    
-    public class GetAllTodoResponse
-    {
-        public List<TodoItemDto> Data { get; set; }
-    }
-    
-    public class GetAll : BaseAsyncEndpoint<GetAllTodoRequest, GetAllTodoResponse>
-    {
-        private readonly ITodoItemRepository _todoItemRepository;
 
-        public GetAll(ITodoItemRepository todoItemRepository)
+    public class GetAll : BaseEndpoint
+    {
+        private readonly IQueryDispatcher _queryDispatcher;
+
+        public GetAll(IQueryDispatcher queryDispatcher)
         {
-            _todoItemRepository = todoItemRepository;
+            _queryDispatcher = queryDispatcher;
         }
         
         [HttpGet("{listId}/todos")]
@@ -34,18 +27,18 @@ namespace WebAPI.Endpoints.TodoItems
             OperationId = "GetAllTodo",
             Tags = new[] {"Todos"}
         )]
-        public override async Task<ActionResult<GetAllTodoResponse>> HandleAsync([FromRoute] GetAllTodoRequest request, CancellationToken token)
+        public async Task<ActionResult<BaseResponse<List<TodoDto>>>> HandleAsync(
+            string listId,
+            CancellationToken token)
         {
-            var todos = await _todoItemRepository.ListAllAsync(request.ListId, token);
-            var response = todos.Select(todo => new TodoItemDto
+            var query = new GetAllTodosQuery
             {
-                TodoId = todo.TodoId,
-                ListId = todo.ListId,
-                Text = todo.Text,
-                Done = todo.Done
-            }).ToList();
+                ListId = listId
+            };
+            
+            var todos = await _queryDispatcher.QueryAsync(query, token);
 
-            return Ok(new GetAllTodoResponse{Data = response});
+            return Ok(new BaseResponse<List<TodoDto>>{Data = todos});
         }
     }
 }

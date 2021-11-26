@@ -1,17 +1,15 @@
-using Application.Common.Interfaces;
-using Application.TodoItems;
-using Application.TodoLists;
+using System.Text.Json.Serialization;
+using Application;
 using Domain.Validators;
 using FluentValidation.AspNetCore;
 using Infrastructure.Database;
-using Infrastructure.Persistence;
+using Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using SharedKernel.Interfaces;
 
 namespace WebAPI
 {
@@ -27,8 +25,11 @@ namespace WebAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            
             services.AddControllers()
-                .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<TodoListValidator>());
+                .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<TodoListValidator>())
+                .AddJsonOptions(x =>
+                    x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
             
             services.AddSwaggerGen(c =>
             {
@@ -37,13 +38,11 @@ namespace WebAPI
             });
             
             services.AddSingleton(new DatabaseConfig(Configuration["DatabaseName"]));
-            services.AddSingleton<IDatabaseBootstrap, DatabaseBootstrap>();
             
-            services.AddScoped<ITodoItemRepository, SqliteTodoItemRepository>();
-            services.AddScoped<ITodoListRepository, SqliteTodoListRepository>();
+            services.AddApplication();
+            services.AddInfrastructure(Configuration);
             
-            services.AddScoped<ITodoItemService, TodoItemService>();
-            services.AddScoped<ITodoListService, TodoListService>();
+            // services.AddSingleton<IDatabaseBootstrap, DatabaseBootstrap>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -64,7 +63,7 @@ namespace WebAPI
 
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
             
-            app.ApplicationServices.GetService<IDatabaseBootstrap>()?.Setup();
+            // app.ApplicationServices.GetService<IDatabaseBootstrap>()?.Setup();
         }
     }
 }

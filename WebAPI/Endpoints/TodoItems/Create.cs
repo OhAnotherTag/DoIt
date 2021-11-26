@@ -1,52 +1,39 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.TodoItems.Commands;
 using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Command.Interfaces;
+using SharedKernel.Query.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
 namespace WebAPI.Endpoints.TodoItems
 {
-    public class CreateTodoRequest
-    {
-        [FromRoute] public string ListId { get; set; }
-        [FromBody] public string Text { get; set; }
-    }
-    
-    public class CreateTodoResponse
-    {
-        public string Message { get; set; }
-    }
-    
-    public class Create : BaseAsyncEndpoint<CreateTodoRequest, CreateTodoResponse>
-    {
-        private readonly ITodoItemRepository _todoItemRepository;
 
-        public Create(ITodoItemRepository todoItemRepository)
+    public class Create : BaseEndpoint
+    {
+        private readonly ICommandDispatcher _commandDispatcher;
+
+        public Create(ICommandDispatcher commandDispatcher)
         {
-            _todoItemRepository = todoItemRepository;
+            _commandDispatcher = commandDispatcher;
         }
-
+        
         [HttpPost("{listId}/todos")]
         [SwaggerOperation(
             Summary = "Creates a new Todo",
             OperationId = "CreateTodo",
             Tags = new[] {"Todos"}
         )]
-        public override async Task<ActionResult<CreateTodoResponse>> HandleAsync([FromRoute] CreateTodoRequest request, CancellationToken token)
+        public async Task<ActionResult<BaseResponse>> HandleAsync(
+            CreateTodoCommand command,
+            string listId,
+            CancellationToken token)
         {
-            var entity = new TodoItem
-            {
-                ListId = request.ListId,
-                Text = request.Text,
-            };
-            
-            // await _todoItemValidator.ValidateAndThrowAsync(entity, token);
-
-            await _todoItemRepository.AddAsync(entity, token);
-
-            return Ok(new CreateTodoResponse{Message = $"Todo with ListId {request.ListId} was created successfully"});
+            command.ListId = listId;
+            await _commandDispatcher.DispatchAsync(command, token);
+            return Ok(new BaseResponse{Message = $"Todo with ListId {command.ListId} was created successfully"});
         }
     }
 }

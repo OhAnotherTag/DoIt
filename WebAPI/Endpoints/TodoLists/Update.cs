@@ -1,31 +1,21 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.TodoLists.Commands;
 using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Command.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
 namespace WebAPI.Endpoints.TodoLists
 {
-    public class UpdateListRequest
+    public class Update : BaseEndpoint
     {
-        [FromRoute] public string ListId { get; set; }
-        [FromBody] public string Title { get; set; }
-    }
-    
-    public class UpdateListResponse
-    {
-        public string Message { get; set; }
-    }
+        private readonly ICommandDispatcher _commandDispatcher;
 
-    public class Update : BaseAsyncEndpoint<UpdateListRequest, UpdateListResponse>
-    {
-        private readonly ITodoListRepository _todoListRepository;
-
-        public Update(ITodoListRepository todoListRepository)
+        public Update(ICommandDispatcher commandDispatcher)
         {
-            _todoListRepository = todoListRepository;
+            _commandDispatcher = commandDispatcher;
         }
 
         [HttpPut("{listId}")]
@@ -34,13 +24,20 @@ namespace WebAPI.Endpoints.TodoLists
             OperationId = "UpdateList",
             Tags = new[] {"Lists"}
         )]
-        public override async Task<ActionResult<UpdateListResponse>> HandleAsync([FromRoute] UpdateListRequest request, CancellationToken token)
+        public async Task<ActionResult<BaseResponse>> HandleAsync(
+            UpdateTodoListCommand command,
+            string listId,
+            CancellationToken token)
         {
-            var entity = new TodoList(request.ListId, request.Title);
+            command.ListId = listId;
+            
+            await _commandDispatcher.DispatchAsync(command, token);
+            var baseResponse = new BaseResponse
+            {
+                Message = $"List with {command.ListId} was updated successfully"
+            };
 
-            await _todoListRepository.UpdateAsync(entity, token);
-
-            return Ok(new UpdateListResponse{Message = $"List with {request.ListId} was updated successfully"});
+            return Ok(baseResponse);
         }
     }
 }

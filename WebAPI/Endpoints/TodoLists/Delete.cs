@@ -1,30 +1,22 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.TodoLists.Commands;
 using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using SharedKernel.Interfaces;
+using SharedKernel.Command.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
 using WebAPI.Endpoints.Common;
 
 namespace WebAPI.Endpoints.TodoLists
 {
-    public class DeleteListRequest
+    public class Delete : BaseEndpoint
     {
-        [FromRoute] public string ListId { get; set; }
-    }
-    
-    public class DeleteListResponse
-    {
-        public string Message { get; set; }
-    }
-    
-    public class Delete : BaseAsyncEndpoint<DeleteListRequest, DeleteListResponse>
-    {
-        private readonly ITodoListRepository _todoListRepository;
+        private readonly ICommandDispatcher _commandDispatcher;
 
-        public Delete(ITodoListRepository todoListRepository)
+        public Delete(ICommandDispatcher commandDispatcher)
         {
-            _todoListRepository = todoListRepository;
+            _commandDispatcher = commandDispatcher;
         }
 
         [HttpDelete("{listId}")]
@@ -33,13 +25,29 @@ namespace WebAPI.Endpoints.TodoLists
             OperationId = "DeleteList",
             Tags = new[] {"Lists"}
         )]
-        public override async Task<ActionResult<DeleteListResponse>> HandleAsync([FromRoute] DeleteListRequest request, CancellationToken token)
+        public async Task<ActionResult<BaseResponse>> HandleAsync(
+            string listId,
+            CancellationToken token)
         {
-            var entity = new TodoList(request.ListId, string.Empty);
-            
-            await _todoListRepository.DeleteAsync(entity, token);
+            var command = new DeleteTodoListCommand
+            {
+                ListId = listId
+            };
 
-            return Ok(new DeleteListResponse {Message = $"List with {request.ListId} was updated successfully"});
+            try
+            {
+                await _commandDispatcher.DispatchAsync(command, token);
+            }
+            catch (ArgumentException e)
+            {
+                return BadRequest(e.Message);
+            }
+
+            var baseResponse = new BaseResponse
+            {
+                Message = $"List with {command.ListId} was updated successfully"
+            };
+            return Ok(baseResponse);
         }
     }
 }
